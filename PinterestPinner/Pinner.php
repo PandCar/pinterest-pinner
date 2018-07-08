@@ -1,4 +1,5 @@
 <?php
+
 namespace PinterestPinner;
 
 use GuzzleHttp\Client as GuzzleClient;
@@ -88,6 +89,11 @@ class Pinner
      */
     protected $_responseContent = null;
 
+    /**
+     * @var string Proxy
+     */
+    private $_proxy = null;
+
     /*
      * Initialize Guzzle Client and set default variables.
      */
@@ -101,6 +107,19 @@ class Pinner
             'Accept-Language' => 'en-US,en;q=0.5',
             'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML => like Gecko) Iron/31.0.1700.0 Chrome/31.0.1700.0',
         );
+    }
+	
+    /**
+     * Set http proxy.
+     *
+     * @param string $proxy
+     * @return \PinterestPinner\Pinner
+     */
+    public function setProxy($proxy)
+    {
+        $this->_proxy = $proxy;
+		
+        return $this;
     }
 
     /**
@@ -316,20 +335,21 @@ class Pinner
         if (count($this->userData)) {
             return $this->userData;
         }
-
+		
         $this->_postLogin();
-
+		
         $this->_loadContent('/me/');
-
+		
         $appJson = $this->_responseToArray();
+		
         if (
             $appJson
-            and isset($appJson['tree']['data'], $appJson['tree']['data']['username'])
+            and isset($appJson['context']['user'], $appJson['context']['user']['username'])
         ) {
-            $this->userData = $appJson['tree']['data'];
+            $this->userData = $appJson['context']['user'];
             return $this->userData;
         }
-
+		
         throw new PinnerException('Unknown error while getting user data.');
     }
 
@@ -565,6 +585,10 @@ class Pinner
                     'cookies' => true,
                     'verify' => false,
                 );
+				
+				if (! empty($this->_proxy)){
+					$config['proxy'] = $this->_proxy;
+				}
             } else {
                 $config = array(
                     'defaults' => array(
